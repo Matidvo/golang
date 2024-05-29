@@ -1,0 +1,125 @@
+/*
+ASSIGNMENT:
+Compute the result for a game of Hex / Polygon.
+
+The abstract boardgame known as Hex / Polygon / CON-TAC-TIX is quite simple in rules, though complex in practice. Two players place stones on a parallelogram with hexagonal fields. The player to connect his/her stones to the opposite side first wins. The four sides of the parallelogram are divided between the two players (i.e. one player gets assigned a side and the side directly opposite it and the other player gets assigned the two other sides).
+
+Your goal is to build a program that given a simple representation of a board computes the winner (or lack thereof). Note that all games need not be "fair". (For example, players may have mismatched piece counts or the game's board might have a different width and height.)
+
+The boards look like this:
+
+. O . X .
+ . X X O .
+  O O O X .
+   . X O X O
+    X O O O X
+"Player O" plays from top to bottom, "Player X" plays from left to right. In the above example O has made a connection from left to right but nobody has won since O didn't connect top and bottom.
+*/
+
+// IMPLEMENTATION
+package main
+
+import (
+	"fmt"
+)
+
+type Player int
+
+const (
+	Empty Player = iota
+	X
+	O
+)
+
+type Board struct {
+	Grid   [][]Player
+	Width  int
+	Height int
+}
+
+func NewBoard(width, height int) *Board {
+	grid := make([][]Player, height)
+	for i := range grid {
+		grid[i] = make([]Player, width)
+	}
+	return &Board{
+		Grid:   grid,
+		Width:  width,
+		Height: height,
+	}
+}
+
+func (b *Board) MakeMove(player Player, x, y int) {
+	b.Grid[y][x] = player
+}
+
+func (b *Board) CheckWinner() Player {
+	// Check if there is a connection from top to bottom for player O
+	for x := 0; x < b.Width; x++ {
+		if b.Grid[0][x] == O {
+			visited := make(map[int]bool)
+			if b.dfs(x, 0, visited, O) {
+				return O
+			}
+		}
+	}
+
+	// Check if there is a connection from left to right for player X
+	for y := 0; y < b.Height; y++ {
+		if b.Grid[y][0] == X {
+			visited := make(map[int]bool)
+			if b.dfs(0, y, visited, X) {
+				return X
+			}
+		}
+	}
+
+	// No winner found
+	return Empty
+}
+
+func (b *Board) dfs(x, y int, visited map[int]bool, player Player) bool {
+	if y == b.Height-1 && player == O {
+		return true
+	}
+	if x == b.Width-1 && player == X {
+		return true
+	}
+	if visited[x] {
+		return false
+	}
+	visited[x] = true
+	directions := []struct{ dx, dy int }{{-1, -1}, {-1, 0}, {0, -1}, {0, 1}, {1, 0}, {1, 1}}
+	for _, dir := range directions {
+		nx, ny := x+dir.dx, y+dir.dy
+		if nx >= 0 && nx < b.Width && ny >= 0 && ny < b.Height && b.Grid[ny][nx] == player {
+			if b.dfs(nx, ny, visited, player) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func main() {
+	board := NewBoard(5, 5)
+	board.MakeMove(O, 1, 0)
+	board.MakeMove(O, 2, 1)
+	board.MakeMove(O, 3, 2)
+	board.MakeMove(O, 4, 3)
+	board.MakeMove(X, 2, 0)
+	board.MakeMove(X, 3, 1)
+	board.MakeMove(X, 4, 2)
+	board.MakeMove(X, 3, 3)
+	board.MakeMove(X, 4, 4)
+
+	winner := board.CheckWinner()
+	switch winner {
+	case X:
+		fmt.Println("Player X wins!")
+	case O:
+		fmt.Println("Player O wins!")
+	default:
+		fmt.Println("No winner.")
+	}
+}
